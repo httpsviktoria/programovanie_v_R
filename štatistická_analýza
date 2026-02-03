@@ -1,0 +1,38 @@
+#chystanie potrebnych kniznic
+library(tidyverse)
+library(lubridate)
+library(scales)
+
+#pridanie datasetu do rka-- dataset som mala stiahnuty v PC 
+setwd()
+dataset <- read_csv("Chocolate Sales (2).csv", show_col_types = FALSE)
+View(dataset)
+
+#premena datumu na pouzitelny
+dataset <- dataset %>%
+    mutate(Date2 = dmy(as.character(Date)))
+	
+#premena datumu na mesiac (zaokruhlovanie)
+dataset <- dataset %>%
+    mutate(Month = floor_date(Date2, unit = "month"))
+	
+#premena hodnoty na cislo
+dataset <- dataset |>
+  mutate(
+    Amount_num = Amount |> as.character() |> str_replace_all("\\$", "") |> str_replace_all(",", "") |> as.numeric(),
+    Boxes_Shipped = as.numeric(Boxes_Shipped),
+    Date = dmy(as.character(Date))  
+  ) |>
+  filter(!is.na(Amount_num), !is.na(Boxes_Shipped), !is.na(Date))
+	
+#samotny graf, facet=staty, farba=mesiace
+ggplot(dataset, aes(Boxes_Shipped, Amount_num)) +
+    geom_point(aes(color = Month), alpha = 0.25, size = 3) +
+    geom_smooth(method = "lm", se = TRUE, color ="black") +
+    facet_wrap(~Country) +
+    scale_color_gradient(
+        low = "skyblue", high = "darkred", 
+        breaks = breaks_pretty(n = 5),
+        labels = function(x) format(as.Date(x, origin="1970-01-01"), "%d.%m.%Y"))
+    labs(title = "Závislosť tržieb od počtu poslaných boxov, rozdelené podľa štátov (farba=mesiac)",
+        x = "Boxes_Shipped", y = "Amount (USD)", color = "Month")
